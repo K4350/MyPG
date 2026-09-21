@@ -1,24 +1,53 @@
-import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import React, {useMemo, useState} from 'react';
+import {Alert, Modal, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View} from 'react-native';
+
+type Category = 'All' | 'Furniture' | 'Electronics' | 'Books' | 'Essentials';
+type Listing = {id: number; title: string; price: string; category: Exclude<Category, 'All'>; seller: string; room: string; posted: string; icon: string; color: string; description: string; sold?: boolean};
+
+const initialListings: Listing[] = [
+  {id: 1, title: 'Study table + chair', price: '₹1,200', category: 'Furniture', seller: 'Aarav S.', room: 'Room 304', posted: '2h ago', icon: '🪑', color: '#E5EEFF', description: 'Compact study table with a sturdy chair. Great condition, ideal for a room setup.'},
+  {id: 2, title: 'Electric kettle', price: '₹450', category: 'Electronics', seller: 'Priya M.', room: 'Room 112', posted: '5h ago', icon: '🫖', color: '#FFF1D8', description: '1.5L kettle, fully working. Selling because I am moving out this weekend.'},
+  {id: 3, title: 'Data Structures notes', price: '₹150', category: 'Books', seller: 'Rohan K.', room: 'Room 210', posted: 'Yesterday', icon: '📚', color: '#E8F7ED', description: 'Neat handwritten notes for the complete semester. Includes practice questions.'},
+  {id: 4, title: 'Laundry basket', price: '₹200', category: 'Essentials', seller: 'Neha G.', room: 'Room 401', posted: 'Yesterday', icon: '🧺', color: '#F5EAFE', description: 'Large plastic laundry basket in very good condition.'},
+];
+const categories: Category[] = ['All', 'Furniture', 'Electronics', 'Books', 'Essentials'];
 
 const MarketplaceScreen = () => {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Marketplace</Text>
-    </View>
-  );
+  const [activeCategory, setActiveCategory] = useState<Category>('All');
+  const [listings, setListings] = useState(initialListings);
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newPrice, setNewPrice] = useState('');
+  const visibleListings = useMemo(() => listings.filter(listing => activeCategory === 'All' || listing.category === activeCategory), [activeCategory, listings]);
+
+  const markAsSold = (id: number) => {
+    setListings(current => current.map(listing => listing.id === id ? {...listing, sold: true} : listing));
+    setSelectedListing(current => current ? {...current, sold: true} : current);
+  };
+  const createListing = () => {
+    if (!newTitle.trim() || !newPrice.trim()) { Alert.alert('Add a title and price', 'Both details help your neighbours find your item.'); return; }
+    setListings(current => [{id: Date.now(), title: newTitle.trim(), price: newPrice.trim().startsWith('₹') ? newPrice.trim() : `₹${newPrice.trim()}`, category: 'Essentials', seller: 'You', room: 'Your room', posted: 'Just now', icon: '✨', color: '#DDF7F2', description: 'A new listing shared with residents in your PG only.'}, ...current]);
+    setNewTitle(''); setNewPrice(''); setShowCreate(false);
+  };
+
+  return <SafeAreaView style={styles.safeArea}>
+    <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+    <View style={styles.header}><View><Text style={styles.eyebrow}>MY PG MARKETPLACE</Text><Text style={styles.heading}>Buy from your neighbours</Text></View><View style={styles.residentBadge}><Text style={styles.residentBadgeText}>Residents only</Text></View></View>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.infoCard}><Text style={styles.infoIcon}>⌂</Text><View style={styles.infoTextWrap}><Text style={styles.infoTitle}>Your PG, your community</Text><Text style={styles.infoText}>Listings are visible only to verified residents of Sunrise PG.</Text></View></View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryList}>{categories.map(category => <Pressable key={category} onPress={() => setActiveCategory(category)} style={[styles.category, activeCategory === category && styles.categoryActive]}><Text style={[styles.categoryText, activeCategory === category && styles.categoryTextActive]}>{category}</Text></Pressable>)}</ScrollView>
+      <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Latest listings</Text><Text style={styles.count}>{visibleListings.length} nearby</Text></View>
+      {visibleListings.map(listing => <Pressable key={listing.id} onPress={() => setSelectedListing(listing)} style={[styles.listingCard, listing.sold && styles.listingCardSold]}><View style={[styles.listingImage, {backgroundColor: listing.color}]}><Text style={styles.listingEmoji}>{listing.icon}</Text></View><View style={styles.listingBody}><View style={styles.listingTopLine}><Text numberOfLines={1} style={styles.listingTitle}>{listing.title}</Text>{listing.sold ? <Text style={styles.soldBadge}>SOLD</Text> : null}</View><Text style={styles.price}>{listing.price}</Text><Text style={styles.meta}>{listing.seller} · {listing.room}</Text><Text style={styles.posted}>{listing.posted}</Text></View></Pressable>)}
+      {visibleListings.length === 0 ? <View style={styles.emptyState}><Text style={styles.emptyTitle}>Nothing here yet</Text><Text style={styles.emptyText}>Try another category or be the first to list an item.</Text></View> : null}
+    </ScrollView>
+    <Pressable onPress={() => setShowCreate(true)} style={styles.fab}><Text style={styles.fabPlus}>＋</Text><Text style={styles.fabText}>Sell an item</Text></Pressable>
+    <Modal animationType="slide" visible={selectedListing !== null} transparent onRequestClose={() => setSelectedListing(null)}><Pressable style={styles.scrim} onPress={() => setSelectedListing(null)}>{selectedListing ? <Pressable style={styles.sheet} onPress={() => undefined}><View style={[styles.detailImage, {backgroundColor: selectedListing.color}]}><Text style={styles.detailEmoji}>{selectedListing.icon}</Text></View><Text style={styles.detailCategory}>{selectedListing.category.toUpperCase()}</Text><View style={styles.detailTitleRow}><Text style={styles.detailTitle}>{selectedListing.title}</Text><Text style={styles.detailPrice}>{selectedListing.price}</Text></View><Text style={styles.detailDescription}>{selectedListing.description}</Text><View style={styles.sellerRow}><View style={styles.avatar}><Text style={styles.avatarText}>{selectedListing.seller[0]}</Text></View><View><Text style={styles.sellerName}>{selectedListing.seller}</Text><Text style={styles.sellerMeta}>{selectedListing.room} · Verified resident</Text></View></View>{selectedListing.sold ? <View style={styles.soldNotice}><Text style={styles.soldNoticeText}>This item has been sold</Text></View> : <View style={styles.actions}><Pressable onPress={() => Alert.alert('Message seller', `A chat with ${selectedListing.seller} would open here.`)} style={styles.messageButton}><Text style={styles.messageButtonText}>Message seller</Text></Pressable>{selectedListing.seller === 'You' ? <Pressable onPress={() => markAsSold(selectedListing.id)} style={styles.soldButton}><Text style={styles.soldButtonText}>Mark sold</Text></Pressable> : null}</View>}</Pressable> : null}</Pressable></Modal>
+    <Modal animationType="fade" visible={showCreate} transparent onRequestClose={() => setShowCreate(false)}><View style={styles.createScrim}><View style={styles.createCard}><Text style={styles.createTitle}>List an item</Text><Text style={styles.createSubtitle}>Only verified Sunrise PG residents will see it.</Text><Text style={styles.fieldLabel}>WHAT ARE YOU SELLING?</Text><TextInput value={newTitle} onChangeText={setNewTitle} placeholder="e.g. Mini fridge" placeholderTextColor="#94A3B8" style={styles.input} /><Text style={styles.fieldLabel}>PRICE</Text><TextInput value={newPrice} onChangeText={setNewPrice} placeholder="e.g. 800" placeholderTextColor="#94A3B8" keyboardType="number-pad" style={styles.input} /><View style={styles.createActions}><Pressable onPress={() => setShowCreate(false)} style={styles.cancelButton}><Text style={styles.cancelText}>Cancel</Text></Pressable><Pressable onPress={createListing} style={styles.publishButton}><Text style={styles.publishText}>Publish</Text></Pressable></View></View></View></Modal>
+  </SafeAreaView>;
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
+  safeArea:{flex:1,backgroundColor:'#F8FAFC'},header:{paddingHorizontal:20,paddingTop:18,paddingBottom:16,flexDirection:'row',justifyContent:'space-between',alignItems:'center'},eyebrow:{fontSize:11,letterSpacing:1.2,fontWeight:'800',color:'#0F766E'},heading:{fontSize:25,fontWeight:'800',letterSpacing:-.7,color:'#102A43',marginTop:3},residentBadge:{backgroundColor:'#DCFCE7',paddingHorizontal:10,paddingVertical:6,borderRadius:99},residentBadgeText:{fontSize:11,fontWeight:'700',color:'#15803D'},content:{paddingHorizontal:20,paddingBottom:94},infoCard:{backgroundColor:'#E7F5F3',borderRadius:16,padding:14,flexDirection:'row',alignItems:'center',marginBottom:20},infoIcon:{fontSize:22,color:'#0F766E',marginRight:10},infoTextWrap:{flex:1},infoTitle:{fontSize:13,fontWeight:'800',color:'#115E59'},infoText:{fontSize:12,lineHeight:17,color:'#39726C',marginTop:2},categoryList:{gap:9,paddingBottom:22},category:{paddingHorizontal:15,paddingVertical:9,borderRadius:99,backgroundColor:'#FFF',borderWidth:1,borderColor:'#E2E8F0'},categoryActive:{backgroundColor:'#102A43',borderColor:'#102A43'},categoryText:{fontSize:13,fontWeight:'700',color:'#52616B'},categoryTextActive:{color:'#FFF'},sectionHeader:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:12},sectionTitle:{fontSize:18,fontWeight:'800',color:'#102A43'},count:{fontSize:12,fontWeight:'700',color:'#718096'},listingCard:{flexDirection:'row',backgroundColor:'#FFF',padding:12,borderRadius:18,marginBottom:12,shadowColor:'#334E68',shadowOpacity:.07,shadowRadius:12,shadowOffset:{width:0,height:4},elevation:2},listingCardSold:{opacity:.58},listingImage:{width:78,height:78,borderRadius:13,justifyContent:'center',alignItems:'center',marginRight:13},listingEmoji:{fontSize:35},listingBody:{flex:1,justifyContent:'center'},listingTopLine:{flexDirection:'row',alignItems:'center',gap:6},listingTitle:{fontSize:16,fontWeight:'800',color:'#243B53',flex:1},price:{fontSize:16,fontWeight:'800',color:'#0F766E',marginTop:3},meta:{fontSize:12,color:'#627D98',marginTop:5},posted:{fontSize:11,color:'#9FB3C8',marginTop:3},soldBadge:{fontSize:9,fontWeight:'900',color:'#FFF',backgroundColor:'#718096',paddingHorizontal:5,paddingVertical:3,borderRadius:4},emptyState:{alignItems:'center',padding:38},emptyTitle:{fontSize:17,fontWeight:'800',color:'#334E68'},emptyText:{fontSize:13,color:'#718096',textAlign:'center',marginTop:7},fab:{position:'absolute',right:20,bottom:22,borderRadius:99,backgroundColor:'#0F766E',flexDirection:'row',alignItems:'center',paddingHorizontal:17,paddingVertical:14,shadowColor:'#134E4A',shadowOpacity:.3,shadowRadius:10,shadowOffset:{width:0,height:5},elevation:4},fabPlus:{color:'#FFF',fontSize:21,lineHeight:21,marginRight:5},fabText:{color:'#FFF',fontSize:14,fontWeight:'800'},scrim:{flex:1,backgroundColor:'rgba(15,23,42,.5)',justifyContent:'flex-end'},sheet:{backgroundColor:'#FFF',borderTopLeftRadius:28,borderTopRightRadius:28,padding:20,paddingBottom:34},detailImage:{height:142,borderRadius:18,alignItems:'center',justifyContent:'center',marginBottom:17},detailEmoji:{fontSize:66},detailCategory:{fontSize:11,letterSpacing:1,color:'#0F766E',fontWeight:'900'},detailTitleRow:{flexDirection:'row',alignItems:'baseline',justifyContent:'space-between',gap:12,marginTop:5},detailTitle:{fontSize:22,fontWeight:'800',color:'#102A43',flex:1},detailPrice:{fontSize:20,fontWeight:'900',color:'#0F766E'},detailDescription:{fontSize:14,lineHeight:21,color:'#627D98',marginTop:11},sellerRow:{flexDirection:'row',alignItems:'center',marginTop:19,paddingTop:16,borderTopWidth:1,borderTopColor:'#E8EEF4'},avatar:{width:38,height:38,borderRadius:19,backgroundColor:'#DDF7F2',alignItems:'center',justifyContent:'center',marginRight:10},avatarText:{fontSize:16,fontWeight:'800',color:'#0F766E'},sellerName:{fontSize:14,fontWeight:'800',color:'#243B53'},sellerMeta:{fontSize:12,color:'#718096',marginTop:2},actions:{flexDirection:'row',gap:9,marginTop:20},messageButton:{backgroundColor:'#102A43',borderRadius:12,alignItems:'center',paddingVertical:14,flex:1},messageButtonText:{color:'#FFF',fontSize:14,fontWeight:'800'},soldButton:{borderRadius:12,borderWidth:1,borderColor:'#0F766E',paddingHorizontal:16,justifyContent:'center'},soldButtonText:{fontSize:13,fontWeight:'800',color:'#0F766E'},soldNotice:{backgroundColor:'#F1F5F9',borderRadius:10,alignItems:'center',paddingVertical:12,marginTop:20},soldNoticeText:{fontSize:13,fontWeight:'800',color:'#64748B'},createScrim:{flex:1,justifyContent:'center',padding:22,backgroundColor:'rgba(15,23,42,.55)'},createCard:{backgroundColor:'#FFF',borderRadius:22,padding:20},createTitle:{fontSize:22,fontWeight:'800',color:'#102A43'},createSubtitle:{fontSize:13,lineHeight:19,color:'#627D98',marginTop:5,marginBottom:20},fieldLabel:{fontSize:10,letterSpacing:.9,fontWeight:'900',color:'#627D98',marginBottom:7},input:{height:48,borderWidth:1,borderColor:'#D9E2EC',borderRadius:11,fontSize:15,color:'#243B53',paddingHorizontal:13,marginBottom:16},createActions:{flexDirection:'row',justifyContent:'flex-end',gap:10,marginTop:3},cancelButton:{paddingHorizontal:14,paddingVertical:12},cancelText:{fontSize:14,fontWeight:'800',color:'#627D98'},publishButton:{backgroundColor:'#0F766E',borderRadius:10,paddingHorizontal:18,paddingVertical:12},publishText:{fontSize:14,fontWeight:'800',color:'#FFF'},
 });
-
 export default MarketplaceScreen;
