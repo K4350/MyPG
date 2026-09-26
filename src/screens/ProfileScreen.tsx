@@ -15,7 +15,7 @@ type Props = {navigation: any};
 const ProfileScreen = ({navigation}: Props) => {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      <StatusBar barStyle="light-content" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

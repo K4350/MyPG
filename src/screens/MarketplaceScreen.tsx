@@ -32,7 +32,7 @@ const MarketplaceScreen = () => {
   };
 
   return <SafeAreaView style={styles.safeArea}>
-    <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+    <StatusBar barStyle="dark-content" />
     <View style={styles.header}><View><Text style={styles.eyebrow}>MY PG MARKETPLACE</Text><Text style={styles.heading}>Buy from your neighbours</Text></View><View style={styles.residentBadge}><Text style={styles.residentBadgeText}>Residents only</Text></View></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.infoCard}><Text style={styles.infoIcon}>⌂</Text><View style={styles.infoTextWrap}><Text style={styles.infoTitle}>Your PG, your community</Text><Text style={styles.infoText}>Listings are visible only to verified residents of Sunrise PG.</Text></View></View>
